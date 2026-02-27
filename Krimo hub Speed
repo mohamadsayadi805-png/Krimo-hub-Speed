@@ -5,34 +5,28 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Create main ScreenGui
+-- Create GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "KrimoHubGUI"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = PlayerGui
 
 -- Main frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 140, 0, 95)
 mainFrame.Position = UDim2.new(1, -153, 0.29, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Schwarz
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.BorderSizePixel = 0
-mainFrame.Active = false
 mainFrame.Parent = gui
 
--- Frame styling
-local corner = Instance.new("UICorner")
+local corner = Instance.new("UICorner", mainFrame)
 corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = mainFrame
 
-local stroke = Instance.new("UIStroke")
+local stroke = Instance.new("UIStroke", mainFrame)
 stroke.Thickness = 2
-stroke.Color = Color3.fromRGB(0, 170, 255) -- Hellblau
-stroke.Parent = mainFrame
+stroke.Color = Color3.fromRGB(0, 170, 255)
 
--- Title label
+-- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -10, 0, 26)
 title.Position = UDim2.new(0, 5, 0, 5)
@@ -41,14 +35,13 @@ title.Text = "Krimo hub"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 14
 title.Font = Enum.Font.GothamBold
-title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = mainFrame
 
--- Input textbox
+-- Speed Input
 local speedInput = Instance.new("TextBox")
 speedInput.Size = UDim2.new(1, -24, 0, 26)
 speedInput.Position = UDim2.new(0, 12, 0, 36)
-speedInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Dunkles Schwarz
+speedInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 speedInput.Text = "25"
 speedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedInput.TextSize = 14
@@ -56,42 +49,73 @@ speedInput.Font = Enum.Font.Gotham
 speedInput.ClearTextOnFocus = false
 speedInput.Parent = mainFrame
 
-local inputCorner = Instance.new("UICorner")
-inputCorner.CornerRadius = UDim.new(0, 6)
-inputCorner.Parent = speedInput
+Instance.new("UICorner", speedInput).CornerRadius = UDim.new(0, 6)
 
-local inputStroke = Instance.new("UIStroke")
-inputStroke.Color = Color3.fromRGB(0, 170, 255) -- Blau
-inputStroke.Parent = speedInput
+local inputStroke = Instance.new("UIStroke", speedInput)
+inputStroke.Color = Color3.fromRGB(0, 170, 255)
 
--- Toggle button area (bottom)
+-- Toggle container
 local toggleContainer = Instance.new("Frame")
 toggleContainer.Size = UDim2.new(0, 50, 0, 22)
 toggleContainer.Position = UDim2.new(0.5, -25, 1, -30)
-toggleContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30) -- Dunkel
+toggleContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 toggleContainer.Parent = mainFrame
 
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggleContainer
+Instance.new("UICorner", toggleContainer).CornerRadius = UDim.new(1, 0)
 
--- The actual toggle circle
+-- Toggle circle
 local toggleCircle = Instance.new("Frame")
 toggleCircle.Size = UDim2.new(0, 18, 0, 18)
 toggleCircle.Position = UDim2.new(0, 2, 0.5, -9)
 toggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 toggleCircle.Parent = toggleContainer
 
-local circleCorner = Instance.new("UICorner")
-circleCorner.CornerRadius = UDim.new(1, 0)
-circleCorner.Parent = toggleCircle
+Instance.new("UICorner", toggleCircle).CornerRadius = UDim.new(1, 0)
 
--- Connections
-local textChangedConnection = speedInput:GetPropertyChangedSignal("Text"):Connect(function()
-    -- Add your value validation / number conversion logic here
+-- SPEED LOGIC
+local toggled = false
+local defaultSpeed = 16
+
+local function applySpeed()
+    local character = LocalPlayer.Character
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    if toggled then
+        local speedValue = tonumber(speedInput.Text) or 25
+        humanoid.WalkSpeed = speedValue
+    else
+        humanoid.WalkSpeed = defaultSpeed
+    end
+end
+
+-- Reapply speed if character respawns
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    applySpeed()
 end)
 
-local toggleConnection = toggleContainer.InputBegan:Connect(function(input, gameProcessed)
+-- Toggle click
+toggleContainer.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    -- Add toggle ON/OFF logic here
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+    
+    toggled = not toggled
+    
+    if toggled then
+        TweenService:Create(toggleCircle, TweenInfo.new(0.2), {
+            Position = UDim2.new(1, -20, 0.5, -9)
+        }):Play()
+        
+        toggleContainer.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    else
+        TweenService:Create(toggleCircle, TweenInfo.new(0.2), {
+            Position = UDim2.new(0, 2, 0.5, -9)
+        }):Play()
+        
+        toggleContainer.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    end
+    
+    applySpeed()
 end)
